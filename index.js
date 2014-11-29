@@ -22,7 +22,6 @@ app.post('/endpoint', function(req, res) {
     if (((new Date().getTime() / 1000) - time) > 60 * 10) {
         return res.status(400).json({error: "Request too old"});
     }
-    console.log("heeeere");
     var sha256 = crypto.createHash('sha256');
     sha256.update(req.body.target + "-" + req.body.time + "-" + req.body.nonce);
     if (!sha256.digest('hex').match(/^000000/)) {
