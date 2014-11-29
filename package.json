@@ -1,0 +1,23 @@
+{
+  "name": "hash-for-vouch",
+  "version": "0.0.1",
+  "description": "Prove you'll do work, and we'll Vouch (in the webmentions sense) for you",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stuartlangridge/hash-for-vouch.git"
+  },
+  "author": "Stuart Langridge <sil@kryogenix.org>",
+  "license": "Public Domain",
+  "bugs": {
+    "url": "https://github.com/stuartlangridge/hash-for-vouch/issues"
+  },
+  "homepage": "https://github.com/stuartlangridge/hash-for-vouch",
+  "dependencies": {
+    "body-parser": "^1.9.3",
+    "express": "^4.10.4"
+  }
+}
