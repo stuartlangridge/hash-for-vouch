@@ -1,0 +1,99 @@
+<h1>Welcome to Hash For Vouch!</h1>
+<p><a href="http://indiewebcamp.com/Webmention">Webmentions</a> are a simple way to notify any URL when you link 
+to it on your site. <a href="http://indiewebcamp.com/Vouch">Vouch</a> is an anti-spam extension to Webmention;
+in particular, when one sends a webmention, one can also include a "<strong>vouch</strong>": a URL which links
+to your post and is trusted by the site you're mentioning, as evidence that you're worthy of trust.</p>
+
+<p>But it is <a href="http://indiewebcamp.com/Vouch#How_can_a_sender_find_a_vouch_link">sometimes difficult to find 
+a vouch link</a>, and Vouch has the <em>clique problem</em>: it's useful among a group of people who all know one another
+and who <em>know</em> that they know one another, but it can be unreasonably hard to join the conversation if you're not
+known by the group.</p>
+
+<p>The Vouch spec itself <a href="http://indiewebcamp.com/Vouch#Shift_Burden_To_Sender">says that it's important to 
+"shift the burden to the sender"</a>: "Typical protocols susceptible to (abused by, made nearly useless by) spam
+(e.g. SMTP, Pingback, Trackback) make it very easy for the sender to send, and thus put all the burden of dealing 
+with filtering undesired senders on the receiver." So, what if it were more difficult to send, but without 
+requiring the "playground politics" of having to find a way into the clique?</p>
+
+<p>Hence, <strong>Hash for Vouch</strong>. If you prove that you're prepared to do a small amount of work, then Hash 
+for Vouch will vouch for you when you send a webmention. This work basically means that sending a webmention will take
+you a few seconds longer; that isn't too onerous for you, but it is prohibitive for spammers who can't spam if
+sending webmentions takes a few seconds rather than thousands every second.</p>
+
+<p>You can <span class="js">use the form below to ask Hash for Vouch to vouch for a webmention that you plan to 
+send, or if you're technically adept you can </span><a href="/details#api">use Hash for Vouch's API</a> to add Hash 
+for Vouch integration directly into your code.</p>
+
+<form class="js vouchform">
+    <label>Enter your page's URL (the page that you wrote, which contains a link to the target): 
+    <input type="url" required pattern="https?://.+\..+" id="source"></label>
+    <input type="submit" value="Get a Vouch URL">
+    <p id="vouchurl"></p>
+</form>
+
+<script src="/sha256.js"></script>
+<script>
+document.querySelector("form").addEventListener("submit", function(e) {
+    e.preventDefault();
+    var counter = 0,
+    t = Math.round(new Date().getTime() / 1000),
+    url = document.getElementById("source").value,
+    pv = document.getElementById("vouchurl");
+    pv.style.display = "block";
+
+    function processSomeHashValues() {
+        var found = false;
+        var startcounter = counter;
+        while (true) {
+            var hashed = Sha256.hash(url + "-" + t + "-" + counter);
+            if (hashed.match(/^00000/)) {
+                found = true;
+                break;
+            }
+            counter += 1;
+            if (counter > (startcounter + 5000)) {
+                break;
+            }
+        }
+        if (found) {
+            clearInterval(iv);
+            pv.innerHTML = "Work done; now getting a Vouch URL!";
+            console.log("we are found!", counter, Sha256.hash(url + "-" + t + "-" + counter));
+            var x = new XMLHttpRequest();
+            x.open("POST", "/endpoint", true);
+            x.onreadystatechange = function() {
+                if (x.readyState == 4) {
+                    var j;
+                    try {
+                        j = JSON.parse(x.responseText);
+                    } catch(e) {
+                        pv.innerHTML = "Couldn't get a Vouch URL; sorry!";
+                        return;
+                    }
+                    if (j.url) {
+                        pv.innerHTML = "Your Vouch URL is: <a href='" + j.url + "'>" + j.url + "</a>.";
+                    } else {
+                        pv.innerHTML = "";
+                        pv.appendChild(document.createTextNode("There was a problem getting a Vouch URL (" + 
+                            (j.error || 'internal error') + ")"));
+                    }
+                }
+            };
+            x.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+            x.send("source=" + url + "&nonce=" + counter + "&time=" + t);
+        } else {
+            console.log("not found, counter is", counter);
+            setTimeout(processSomeHashValues, 0);
+        }
+    }
+    var msgs = ["Doing work to prove that you're not a spammer&hellip;",
+        "Still working&hellip;", "Continuing to work&hellip;", "Proving you're not a spammer by working&hellip;"];
+    pv.innerHTML = msgs[0];
+    var iv = setInterval(function() {
+        pv.innerHTML = msgs[Math.round((msgs.length-1) * Math.random())];
+    }, 3000);
+    processSomeHashValues();
+    return false;
+});
+</script>
+<p><a href="http://www.movable-type.co.uk/scripts/sha256.html">SHA256 by Chris Veness</a></p>

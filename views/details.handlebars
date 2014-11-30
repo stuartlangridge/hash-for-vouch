@@ -1,0 +1,48 @@
+<h2>What is Hash for Vouch?</h2>
+<p>Hash for Vouch is a web service which demonstrates that the person sending a webmention probably isn't a spammer 
+by requiring them to do a complex calculation.</p>
+
+<p>If you prove that you're prepared to do a small amount of work, then Hash for Vouch will vouch for you when 
+you send a webmention. This work basically means that sending a webmention will take you a few seconds longer; 
+that isn't too onerous for you, but it is prohibitive for spammers who can't spam if sending webmentions takes a 
+few seconds rather than thousands every second.</p>
+
+<h2>What are Webmentions? Vouch?</h2>
+<p><a href="http://indiewebcamp.com/Webmention">Webmentions</a> are a simple way to notify any URL when you link 
+to it on your site. <a href="http://indiewebcamp.com/Vouch">Vouch</a> is an anti-spam extension to Webmention;
+in particular, when one sends a webmention, one can also include a "<strong>vouch</strong>": a URL which links
+to your post and is trusted by the site you're mentioning, as evidence that you're worthy of trust.</p>
+
+<h2>What's the "work" that's done?</h2>
+<p>It's inspired by <a href="http://www.hashcash.org">Hashcash</a>, which is most famous as the bitcoin mining function.
+Basically, you take the source URL (where your webmention is coming from) and the time (an integer number of seconds since Jan 1st 1970 UTC), and a "nonce", such that <code>sha256(source + "-" + time + "-" + nonce)</code> begins with 5 zeroes. Doing this
+requires trying lots of different nonces, which takes time.</p>
+
+<p>An example node.js implementation is in <code>generaterequest.js</code> in the <a href="https://github.com/stuartlangridge/hash-for-vouch">source repo</a>. An example Python implementation is:</p>
+<pre><code>
+url = "http://example.com"
+t = int(time.time())
+counter = 0
+while 1:
+    dig = hashlib.sha256("%s-%s-%s" % (url, t, counter)).hexdigest()
+    if dig.startswith("000000"):
+        print dig, counter
+        print urllib.urlencode({"time": t, "nonce": counter, "target": url})
+        break
+    counter += 1</code></pre>
+
+<h2>Why do vouch pages disappear after some time, rather than live forever?</h2>
+<p>If they didn't, then a spammer could get a page vouched for, and then later change its content to contain spam and 
+dynamically add links of pags they're webmentioning. This isn't peculiar to Hash for Vouch; it's a problem with Vouch
+generally, but with Vouch generally the receiver can decide that they no longer trust site X to vouch for anyone. I don't want
+people to treat Hash for Vouch in total as untrustworthy, so it goes to extra effort to avoid being used by spammers.</p>
+
+<h2>That's not really what a "nonce" is, in cryptographic jargon</h2>
+<p>I know. But it's a convenient word, here.</p>
+
+<h2 id="api">What's the API?</h2>
+<p>Once you've calculated a nonce, <code>POST</code> to <code>/endpoint</code> with body <code>source=http://yourpage.com/somepage&nonce=yournonce&time=1417359573</code>. The <code>time</code> parameter must be an <em>integral number of seconds</em>, not a number of <em>milli</em>seconds. The API will return JSON, either <code>{error: "Some error text"}</code> or on success <code>{url: "a vouch URL"}</code>. If successful, you can use the vouch URL when posting your webmention; you should do so immediately, because vouch URLs disappear in time as described above.</p>
+
+<h2>Who made this?</h2>
+<p>If you have questions, let <a href="http://www.kryogenix.org">sil</a> know (or on Twitter at
+<a href="https://twitter.com/sil">@sil</a>).</p>
