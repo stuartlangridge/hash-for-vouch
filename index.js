@@ -3,46 +3,34 @@ var express = require('express'),
     bodyParser = require('body-parser'),
     crypto = require('crypto'),
     pg = require('pg'),
-    exphbs  = require('express-handlebars');;
+    exphbs  = require('express-handlebars'),
+    async = require('async');
 
 // Create database contents table on startup
-pg.connect(process.env.DATABASE_URL, function(err, client, done) {
-    client.query('create table if not exists vouches ' +
-    '(id serial primary key, source varchar, ' +
-    'created timestamp DEFAULT now() NOT NULL)', function(err, result) {
-        if (err) {
-            done(); throw new Error(err);
-        } else {
-            // Create function to delete rows after time N
-            // thank you http://www.the-art-of-web.com/sql/trigger-delete-old/
-            var fn = 'CREATE OR REPLACE FUNCTION delete_old_rows() RETURNS trigger ' +
+pg.connect(process.env.DATABASE_URL, function(err, client, returnClientToPool) {
+    var sqls = [
+        'create table if not exists vouches ' +
+            '(id serial primary key, source varchar, ' +
+            'created timestamp DEFAULT now() NOT NULL)',
+        'DO $$ BEGIN BEGIN ALTER TABLE vouches ADD COLUMN views int default 0; ' +
+        "EXCEPTION WHEN duplicate_column THEN RAISE NOTICE 'Views column already present'; " +
+        'END; END; $$',
+        'CREATE OR REPLACE FUNCTION delete_old_rows() RETURNS trigger ' +
             'LANGUAGE plpgsql AS $$ BEGIN ' +
             "DELETE FROM vouches WHERE created < NOW() - INTERVAL '3 minutes';" +
-            'RETURN NEW; END; $$;';
-            client.query(fn, function(err, result) {
-                if (err) {
-                    done(); throw new Error(err);
-                } else {
-                    // and trigger that function to be called whenever we add new rows
-                    var dtr = 'DROP TRIGGER IF EXISTS old_rows_gc ON vouches;';
-                    client.query(dtr, function(err, result) {
-                        if (err) {
-                            done(); throw new Error(err);
-                        } else {
-                            var tr = 'CREATE TRIGGER old_rows_gc AFTER INSERT ON vouches ' +
-                            'EXECUTE PROCEDURE delete_old_rows();';
-                            client.query(tr, function(err, result) {
-                                if (err) {
-                                    done(); throw new Error(err);
-                                } else {
-                                    console.log("Database set up OK", result);
-                                    done(); 
-                                }
-                            });
-                        }
-                    });
-                }
-            });
+            'RETURN NEW; END; $$;',
+        'DROP TRIGGER IF EXISTS old_rows_gc ON vouches;',
+        'CREATE TRIGGER old_rows_gc AFTER INSERT ON vouches ' +
+            'EXECUTE PROCEDURE delete_old_rows();'
+    ];
+    async.eachSeries(sqls, function(sql, cb) {
+        client.query(sql, function(err, result) {
+            returnClientToPool();
+            cb(err);
+        });
+    }, function(err) {
+        if (err) {
+            throw new Error(err);
         }
     });
 });
@@ -74,7 +62,7 @@ app.get('/vouch/:id', function (req, res) {
             console.log("Error connecting to db for vouch", req.params.id, err);
             return res.status(500).render("error", {error: "There was a problem connecting to the database. Sorry."});
         }
-        client.query('select source, created from vouches where id = $1::int', [req.params.id], function(err, result) {
+        client.query('select source, created, views from vouches where id = $1::int', [req.params.id], function(err, result) {
             done(); // release client back to the pool
             if (err) {
                 console.log("Error selecting for vouch", req.params.id, err);
@@ -84,6 +72,19 @@ app.get('/vouch/:id', function (req, res) {
                 return res.status(404).render("error", {error: "That vouch doesn't seem to exist."});
             }
             res.render("vouch", {source: result.rows[0].source});
+            if (result.rows[0].views > 3) {
+                client.query("delete from vouches where id = $1::int", [req.params.id], function(err, result) {
+                    if (err) { console.log("Got error deleting exceeded views vouch", req.params.id); }
+                });
+            } else if (result.rows[0].views === null) {
+                client.query("update vouches set views = 1 where id = $1::int", [req.params.id], function(err, result) {
+                    if (err) { console.log("Got error updating views count to 1 on vouch", req.params.id); }
+                });
+            } else {
+                client.query("update vouches set views = views + 1 where id = $1::int", [req.params.id], function(err, result) {
+                    if (err) { console.log("Got error updating views count on vouch", req.params.id); }
+                });
+            }
         });
     });
 });

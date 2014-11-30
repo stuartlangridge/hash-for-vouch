@@ -36,6 +36,12 @@ while 1:
 dynamically add links of pags they're webmentioning. This isn't peculiar to Hash for Vouch; it's a problem with Vouch
 generally, but with Vouch generally the receiver can decide that they no longer trust site X to vouch for anyone. I don't want
 people to treat Hash for Vouch in total as untrustworthy, so it goes to extra effort to avoid being used by spammers.</p>
+<p>There are two reasons why vouch pages disappear. The first is that they are automatically deleted after 3 minutes even
+if they're not used. The second is that they are automatically deleted once they've been viewed 4 times. Both of these are to
+stop a spammer writing one page with a thousand URLs on, getting it vouched for, and then sending a thousand spammy webmentions
+to those pages; once the first four have been sent and the recipient checks the vouch URL for validity, the vouch URL goes 
+away. None of this should be a problem for people using Hash for Vouch correctly; that is, plan to send a webmention, get a
+vouch URL for it, send the webmention with the vouch URL attached, recipient checks the vouch URL, done.</p>
 
 <h2>That's not really what a "nonce" is, in cryptographic jargon</h2>
 <p>I know. But it's a convenient word, here.</p>
