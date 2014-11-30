@@ -3,6 +3,9 @@ var express = require('express'),
     bodyParser = require('body-parser'),
     crypto = require('crypto');
 
+app.set('port', (process.env.PORT || 3000));
+app.use(express.static(__dirname + '/public'));
+
 app.use(bodyParser.urlencoded({
   extended: true
 }));
@@ -31,8 +34,8 @@ app.post('/endpoint', function(req, res) {
     // OK now save it in a database, and return the URL to the page which displays it.
     res.json({});
 });
-
-var server = app.listen(3000, function () {
+    
+var server = app.listen(app.get('port'), function () {
   var host = server.address().address;
   var port = server.address().port;
   console.log('Example app listening at http://%s:%s', host, port);

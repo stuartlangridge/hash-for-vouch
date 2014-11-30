@@ -18,6 +18,7 @@
   "homepage": "https://github.com/stuartlangridge/hash-for-vouch",
   "dependencies": {
     "body-parser": "^1.9.3",
-    "express": "^4.10.4"
+    "express": "^4.10.4",
+    "pg": "^4.0.0"
   }
 }
