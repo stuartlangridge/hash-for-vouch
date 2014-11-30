@@ -16,7 +16,7 @@ to your post and is trusted by the site you're mentioning, as evidence that you'
 <h2>What's the "work" that's done?</h2>
 <p>It's inspired by <a href="http://www.hashcash.org">Hashcash</a>, which is most famous as the bitcoin mining function.
 Basically, you take the source URL (where your webmention is coming from) and the time (an integer number of seconds since Jan 1st 1970 UTC), and a "nonce", such that <code>sha256(source + "-" + time + "-" + nonce)</code> begins with 5 zeroes. Doing this
-requires trying lots of different nonces, which takes time.</p>
+(that is: working out a nonce that fulfils the requirements) requires trying lots of different nonces, which takes time.</p>
 
 <p>An example node.js implementation is in <code>generaterequest.js</code> in the <a href="https://github.com/stuartlangridge/hash-for-vouch">source repo</a>. An example Python implementation is:</p>
 <pre><code>
@@ -33,12 +33,12 @@ while 1:
 
 <h2>Why do vouch pages disappear after some time, rather than live forever?</h2>
 <p>If they didn't, then a spammer could get a page vouched for, and then later change its content to contain spam and 
-dynamically add links of pags they're webmentioning. This isn't peculiar to Hash for Vouch; it's a problem with Vouch
+dynamically add links of pages they're webmentioning. This isn't peculiar to Hash for Vouch; it's a problem with Vouch
 generally, but with Vouch generally the receiver can decide that they no longer trust site X to vouch for anyone. I don't want
 people to treat Hash for Vouch in total as untrustworthy, so it goes to extra effort to avoid being used by spammers.</p>
 <p>There are two reasons why vouch pages disappear. The first is that they are automatically deleted after 3 minutes even
 if they're not used. The second is that they are automatically deleted once they've been viewed 4 times. Both of these are to
-stop a spammer writing one page with a thousand URLs on, getting it vouched for, and then sending a thousand spammy webmentions
+stop a spammer writing one page with a thousand URLs on, getting it vouched for (or getting a nice-looking page vouched for and then <em>changing</em> to list a thousand URLs you want to send spam to), and then sending a thousand spammy webmentions
 to those pages; once the first four have been sent and the recipient checks the vouch URL for validity, the vouch URL goes 
 away. None of this should be a problem for people using Hash for Vouch correctly; that is, plan to send a webmention, get a
 vouch URL for it, send the webmention with the vouch URL attached, recipient checks the vouch URL, done.</p>
