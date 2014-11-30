@@ -13,7 +13,7 @@ while (true) {
     if (dig.match(/^00000/)) {
         var fields = {source: url, nonce: counter, time: t};
         console.log("Requesting with parameters", qs.stringify(fields));
-        request.post({url: 'http://localhost:3000/endpoint', form: fields}, function(err, httpResponse, body) {
+        request.post({url: 'http://hash-for-vouch.herokuapp.com/endpoint', form: fields}, function(err, httpResponse, body) {
             console.log("Response", body);
         });
         break;
