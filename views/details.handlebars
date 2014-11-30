@@ -37,7 +37,7 @@ dynamically add links of pages they're webmentioning. This isn't peculiar to Has
 generally, but with Vouch generally the receiver can decide that they no longer trust site X to vouch for anyone. I don't want
 people to treat Hash for Vouch in total as untrustworthy, so it goes to extra effort to avoid being used by spammers.</p>
 <p>There are two reasons why vouch pages disappear. The first is that they are automatically deleted after 3 minutes even
-if they're not used. The second is that they are automatically deleted once they've been viewed 4 times. Both of these are to
+if they're not used. The second is that they are automatically deleted once they've been viewed 20 times. Both of these are to
 stop a spammer writing one page with a thousand URLs on, getting it vouched for (or getting a nice-looking page vouched for and then <em>changing</em> to list a thousand URLs you want to send spam to), and then sending a thousand spammy webmentions
 to those pages; once the first four have been sent and the recipient checks the vouch URL for validity, the vouch URL goes 
 away. None of this should be a problem for people using Hash for Vouch correctly; that is, plan to send a webmention, get a
@@ -48,6 +48,10 @@ vouch URL for it, send the webmention with the vouch URL attached, recipient che
 
 <h2 id="api">What's the API?</h2>
 <p>Once you've calculated a nonce, <code>POST</code> to <code>/endpoint</code> with body <code>source=http://yourpage.com/somepage&nonce=yournonce&time=1417359573</code>. The <code>time</code> parameter must be an <em>integral number of seconds</em>, not a number of <em>milli</em>seconds. The API will return JSON, either <code>{error: "Some error text"}</code> or on success <code>{url: "a vouch URL"}</code>. If successful, you can use the vouch URL when posting your webmention; you should do so immediately, because vouch URLs disappear in time as described above.</p>
+
+<p>Since a vouch URL will vanish once accessed 20 times, you can have Hash for Vouch vouch for a blog post containing 20 links
+and pass that same vouch URL to each of the 20 outgoing webmentions. If you want to use a Hash for Vouch vouch URL for more than
+20 outgoing webmentions, you'll need to get two or more vouch URLs.</p>
 
 <h2>Who made this?</h2>
 <p>If you have questions, let <a href="http://www.kryogenix.org">sil</a> know (or on Twitter at

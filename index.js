@@ -12,6 +12,8 @@ pg.connect(process.env.DATABASE_URL, function(err, client, returnClientToPool) {
         'create table if not exists vouches ' +
             '(id serial primary key, source varchar, ' +
             'created timestamp DEFAULT now() NOT NULL)',
+        'create table if not exists highest_vouch_number ' +
+            '(highest_vouch_number int)',
         'DO $$ BEGIN BEGIN ALTER TABLE vouches ADD COLUMN views int default 0; ' +
         "EXCEPTION WHEN duplicate_column THEN RAISE NOTICE 'Views column already present'; " +
         'END; END; $$',
@@ -69,19 +71,34 @@ app.get('/vouch/:id', function (req, res) {
                 return res.status(500).render("error", {error: "There was a problem retrieving that vouch; sorry. Try again."});
             }
             if (result.rows.length < 1) {
-                return res.status(404).render("error", {error: "That vouch doesn't seem to exist."});
+                client.query('select highest_vouch_number from highest_vouch_number', function(err, result) {
+                    done(); // release client back to the pool
+                    if (err) {
+                        console.log("Error selecting for disappeared vouch", req.params.id, err);
+                        return res.status(404).render("oldvouch");
+                    }
+                    if (result.rows.length === 0 || result.rows[0].highest_vouch_number < req.params.id) {
+                        return res.status(404).render("error", {error: "That vouch doesn't seem to exist."});
+                    } else {
+                        return res.status(404).render("oldvouch");
+                    }
+                });
+                return;
             }
             res.render("vouch", {source: result.rows[0].source});
-            if (result.rows[0].views > 3) {
+            if (result.rows[0].views > 20) {
                 client.query("delete from vouches where id = $1::int", [req.params.id], function(err, result) {
+                    done(); // release client back to the pool
                     if (err) { console.log("Got error deleting exceeded views vouch", req.params.id); }
                 });
             } else if (result.rows[0].views === null) {
                 client.query("update vouches set views = 1 where id = $1::int", [req.params.id], function(err, result) {
+                    done(); // release client back to the pool
                     if (err) { console.log("Got error updating views count to 1 on vouch", req.params.id); }
                 });
             } else {
                 client.query("update vouches set views = views + 1 where id = $1::int", [req.params.id], function(err, result) {
+                    done(); // release client back to the pool
                     if (err) { console.log("Got error updating views count on vouch", req.params.id); }
                 });
             }
@@ -119,6 +136,11 @@ app.post('/endpoint', function(req, res) {
             } else {
                 var vouchurl = req.originalUrl.replace(/endpoint$/, "vouch/" + result.rows[0].id);
                 res.json({url: req.protocol + '://' + req.get('host') + vouchurl});
+                // technically this is racy, but it doesn't matter; we only use highest_vouch_number
+                // to indicate whether a 404ed vouch might have existed in the past, so if it's slightly
+                // wrong, no major harm is done.
+                client.query('insert into highest_vouch_number (highest_vouch_number) values ($1::int)', [result.rows[0].id], function(err, result) {
+                });
             }
         });
     });
