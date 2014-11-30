@@ -25,9 +25,9 @@ t = int(time.time())
 counter = 0
 while 1:
     dig = hashlib.sha256("%s-%s-%s" % (url, t, counter)).hexdigest()
-    if dig.startswith("000000"):
+    if dig.startswith("00000"):
         print dig, counter
-        print urllib.urlencode({"time": t, "nonce": counter, "target": url})
+        print urllib.urlencode({"time": t, "nonce": counter, "source": url})
         break
     counter += 1</code></pre>
 
